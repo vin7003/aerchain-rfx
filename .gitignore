@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# internal-only pricing seed used to author the fabricated vendor documents —
+# deliberately not shipped, so nothing in the running app can read from it.
+# (the app's extraction always reads the actual documents in public/vendor-replies/)
+src/data/_ground-truth.json
