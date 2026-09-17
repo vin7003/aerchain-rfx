@@ -8,7 +8,11 @@ import { normalizeLine } from "@/lib/normalize";
 import type { Rfx, ExtractionResult } from "@/lib/types";
 import rfxSeed from "@/data/rfx-seed.json";
 
-export const maxDuration = 60;
+// Vercel silently clamps this to whatever your plan actually allows (e.g. Hobby
+// tops out around 60s, Pro up to 300s/800s depending on Fluid Compute), so
+// requesting more than you're entitled to is harmless — it just uses the real
+// ceiling instead of being artificially capped by this number.
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ vendorId: string }> }) {
   const { vendorId } = await ctx.params;

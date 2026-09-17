@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { askAnalyst } from "@/lib/analyst";
 import type { Rfx, ExtractionResult, AnalystChatMessage } from "@/lib/types";
 
-export const maxDuration = 60;
+export const maxDuration = 300; // Vercel clamps this to your plan's actual ceiling — safe to raise
 
 export async function POST(req: NextRequest) {
   try {

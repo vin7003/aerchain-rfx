@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { draftRfxTurn, type ChatTurn } from "@/lib/rfx-copilot";
 
-export const maxDuration = 60;
+export const maxDuration = 300; // Vercel clamps this to your plan's actual ceiling — safe to raise
 
 export async function POST(req: NextRequest) {
   try {
