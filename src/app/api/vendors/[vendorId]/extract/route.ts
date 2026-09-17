@@ -25,32 +25,32 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ vendorId: 
     // no body / not JSON — fine, use the seed RFx
   }
 
-  // Read the fabricated vendor-reply file. We deliberately fetch it over HTTP from the
-  // deployment's own public URL rather than via fs.readFile(process.cwd() + "/public/...").
-  // On Vercel, files under public/ are shipped as static CDN assets — they are NOT
-  // guaranteed to be present on the serverless function's own filesystem, because
-  // Next.js's build-time file tracer can't always tell that a dynamically-constructed
-  // path (vendor.fileName comes from data, not a static import) needs to be bundled
-  // into the function. That mismatch is invisible in local dev (which always has the
-  // full filesystem) and shows up as every single extraction failing identically in
-  // production. Fetching the public URL sidesteps the tracer entirely.
+  // Read the fabricated vendor-reply file directly off the function's filesystem.
+  // Files under public/ aren't automatically part of a serverless function's own
+  // bundle — Next.js's build-time file tracer can miss a dynamically-constructed
+  // path like this one (vendor.fileName comes from data, not a static import) —
+  // so next.config.ts explicitly forces public/vendor-replies/** into every
+  // route's trace via outputFileTracingIncludes. With that in place this read is
+  // instant and needs no network hop.
   let buffer: Buffer;
   try {
-    const publicUrl = new URL(`/vendor-replies/${vendor.fileName}`, req.nextUrl.origin);
-    const res = await fetch(publicUrl, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    buffer = Buffer.from(await res.arrayBuffer());
-  } catch (fetchErr) {
-    // Fall back to a direct filesystem read (works in local dev and covers any
-    // deployment target where the public URL fetch isn't viable, e.g. no network
-    // egress from the function to its own domain).
+    const filePath = path.join(process.cwd(), "public", "vendor-replies", vendor.fileName);
+    buffer = await fs.readFile(filePath);
+  } catch (fsErr) {
+    // Fallback only: fetch the file's own public URL. This is a real network
+    // round-trip (the function calling back into its own deployment), which is
+    // measurably slower and was previously eating into the extraction call's
+    // time budget and causing FUNCTION_INVOCATION_TIMEOUT — so it's kept only
+    // as a last resort, not the primary path.
     try {
-      const filePath = path.join(process.cwd(), "public", "vendor-replies", vendor.fileName);
-      buffer = await fs.readFile(filePath);
-    } catch (fsErr) {
-      console.error("Could not read vendor file", vendor.fileName, { fetchErr, fsErr });
+      const publicUrl = new URL(`/vendor-replies/${vendor.fileName}`, req.nextUrl.origin);
+      const res = await fetch(publicUrl, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      buffer = Buffer.from(await res.arrayBuffer());
+    } catch (fetchErr) {
+      console.error("Could not read vendor file", vendor.fileName, { fsErr, fetchErr });
       return NextResponse.json(
-        { error: `Could not read vendor file at ${vendor.fileName} (tried HTTP and filesystem)` },
+        { error: `Could not read vendor file at ${vendor.fileName} (tried filesystem and HTTP)` },
         { status: 500 }
       );
     }
