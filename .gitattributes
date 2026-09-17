@@ -1,0 +1,16 @@
+# Force these as binary so git NEVER applies line-ending (CRLF/LF) conversion
+# to them, regardless of a contributor's core.autocrlf setting. Git's own
+# binary auto-detection usually catches this, but can miss small files that
+# are mostly ASCII near the start (e.g. a PDF's header/xref table) — and a
+# single \n -> \r\n conversion there shifts byte offsets and corrupts the
+# file's internal structure (PDF xref tables, xlsx/docx zip central
+# directories, jpg data), which is exactly what happened to the vendor
+# reply PDF in this repo.
+*.pdf   binary
+*.xlsx  binary
+*.xls   binary
+*.docx  binary
+*.doc   binary
+*.jpg   binary
+*.jpeg  binary
+*.png   binary
